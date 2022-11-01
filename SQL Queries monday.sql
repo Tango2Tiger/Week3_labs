@@ -51,7 +51,7 @@ select amount from bank.order
 #Query 12 -----------------
 select trans_id, date, type, amount from bank.trans
 	where account_id=793
-    order by date asc
+    order by date desc
     limit 10;
 
 #Query 13
@@ -101,26 +101,30 @@ select
     group by type;
 
 #Query 20
-with caldiff (difference) as
-(select 
-sum(case when type = "PRIJEM" then -(amount) else amount end)
+with 
+incoming (inc) as 
+(select  case type when "VYDAJ" then floor(sum(amount)) end as type
 from bank.trans
-where account_id=396 and type in ("VYDAJ", "PRIJEM")
-group by type
-)
+where account_id=396 and type not in ("PRIJEM")
+group by type, account_id
+),
+outgoing (outg) as 
+(select case type when "PRIJEM" then floor(sum(amount)) end as type
+from bank.trans
+where account_id=396 and type not in ("VYDAJ")
+group by type, account_id
 
-select 
-	account_id,
-	case type
-	when "VYDAJ" then floor(sum(amount))
-	end as OUTGOING,
-    case type
-    when "PRIJEM" then floor(sum(amount))
-    end as INCOMING,
-    difference
-    from bank.trans, caldiff
-    where account_id=396 and type in ("VYDAJ", "PRIJEM") and amount is not NULL
-    group by type, difference;
+)
+select distinct account_id, inc, outg, outg-inc as difference from incoming join outgoing join bank.trans
+where account_id=396
+;
+
+
+
+
+
+
+
 
 
 
